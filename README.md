@@ -11,6 +11,7 @@ The extension extracts webpage content, sends it to a FastAPI backend, and uses 
 * Ask questions about any webpage
 * Retrieval-Augmented Generation (RAG)
 * Semantic search using embeddings
+* Keyword search using BM25
 * FastAPI backend
 * Gemini LLM integration
 * FAISS vector database
