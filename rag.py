@@ -7,49 +7,57 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_huggingface import HuggingFaceEmbeddings
-from langchain.retrievers import BM25Retriever, EnsembleRetriever
-
-doc = Document(page_content=content)
+from langchain_community.retrievers import BM25Retriever
+from langchain_classic.retrievers import EnsembleRetriever
 
 load_dotenv()
 
-parser = StrOutputParser()
-
-splitter = RecursiveCharacterTextSplitter(
-    chunk_size = 1000,
-    chunk_overlap= 200
-)
-
-chunks = splitter.split_documents([doc])
 
 embedding = HuggingFaceEmbeddings(
     model_name = "sentence-transformers/all-MiniLM-L6-v2"
 )
 
-vector_store = Chroma.from_documents(
-    documents = chunks,
-    embedding = embedding,
-    persist_directory="./chroma_data"
+splitter = RecursiveCharacterTextSplitter(
+    chunk_size = 1000,
+    chunk_overlap = 200
 )
 
-base_retriver = vector_store.as_retriever(
-    search_kwargs={"k": 3}
-)
+def rag_pipeline(content: str, query: str):
 
-keyword_search = BM25Retriever.from_documents(chunks)
-keyword_search.k = 3
+    doc = Document(page_content=content)
 
-final_retriever = EnsembleRetriever(
-    retrievers = [base_retriver,keyword_search],
-    weights = [0.5,0.5]
-)
+    chunks = splitter.split_documents([doc])
 
-retrieved_docs = final_retriever.invoke(query)
+    vector_store = Chroma.from_documents(
+        documents=chunks,
+        embedding=embedding
+    )
 
-context = "\n\n".join(
-    doc.page_content
-    for doc in retrieved_docs
-)
+    retriever = vector_store.as_retriever(
+        search_kwargs={"k": 3}
+    )
+
+    keyword_search = BM25Retriever.from_documents(chunks)
+    keyword_search.k = 3
+
+    final_retriever = EnsembleRetriever(
+        retrievers=[retriever, keyword_search],
+        weights=[0.5, 0.5]
+    )
+
+    retrieved_docs = final_retriever.invoke(query)
+
+    context = "\n\n".join(
+        doc.page_content
+        for doc in retrieved_docs
+    )
+
+    result = chain.invoke({
+        "context": context,
+        "question": query
+    })
+
+    return result
 
 llm = ChatGoogleGenerativeAI(
     model="gemini-2.5-flash",
@@ -77,9 +85,6 @@ prompt = ChatPromptTemplate.from_messages([
         """)
 ])
 
+parser = StrOutputParser()
+
 chain = prompt | llm | parser
-result = chain.invoke({
-    "context": context,
-    "question": query
-})
-print(result)
