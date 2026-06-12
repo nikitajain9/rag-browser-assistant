@@ -7,9 +7,7 @@ langchain-core
 langchain-text-splitters
 langchain-classic
 langchain-chroma
-langchain-huggingface
 langchain-google-genai
 langchain-community
-sentence-transformers
 chromadb
 rank_bm25

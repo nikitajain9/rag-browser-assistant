@@ -1,19 +1,19 @@
 import os
 from dotenv import load_dotenv
 from langchain_chroma import Chroma
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.retrievers import BM25Retriever
 from langchain_classic.retrievers import EnsembleRetriever
 
 load_dotenv()
 
-embedding = HuggingFaceEmbeddings(
-    model_name="sentence-transformers/all-MiniLM-L6-v2"
+embedding = GoogleGenerativeAIEmbeddings(
+    model="models/text-embedding-004",
+    google_api_key=os.getenv("GEMINI_API_KEY")
 )
 
 splitter = RecursiveCharacterTextSplitter(
@@ -47,6 +47,7 @@ prompt = ChatPromptTemplate.from_messages([
 
 parser = StrOutputParser()
 chain = prompt | llm | parser
+
 
 def rag_pipeline(content: str, query: str):
     doc = Document(page_content=content)
