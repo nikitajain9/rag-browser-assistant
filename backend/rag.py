@@ -12,20 +12,44 @@ from langchain_classic.retrievers import EnsembleRetriever
 
 load_dotenv()
 
-
 embedding = HuggingFaceEmbeddings(
-    model_name = "sentence-transformers/all-MiniLM-L6-v2"
+    model_name="sentence-transformers/all-MiniLM-L6-v2"
 )
 
 splitter = RecursiveCharacterTextSplitter(
-    chunk_size = 1000,
-    chunk_overlap = 200
+    chunk_size=1000,
+    chunk_overlap=200
 )
 
+llm = ChatGoogleGenerativeAI(
+    model="gemini-2.5-flash",
+    google_api_key=os.getenv("GEMINI_API_KEY")
+)
+
+prompt = ChatPromptTemplate.from_messages([
+    (
+        'system',
+        '''
+    Answer the user's question using only the
+    provided webpage context.
+    If the answer is not present in the context,
+    say that the information was not found on
+    the webpage.
+'''
+    ),
+    ('user', """
+        Webpage Content:
+{context}
+        Question:
+{question}
+""")
+])
+
+parser = StrOutputParser()
+chain = prompt | llm | parser
+
 def rag_pipeline(content: str, query: str):
-
     doc = Document(page_content=content)
-
     chunks = splitter.split_documents([doc])
 
     vector_store = Chroma.from_documents(
@@ -56,35 +80,4 @@ def rag_pipeline(content: str, query: str):
         "context": context,
         "question": query
     })
-
     return result
-
-llm = ChatGoogleGenerativeAI(
-    model="gemini-2.5-flash",
-    google_api_key=os.getenv("GEMINI_API_KEY")
-)
-
-prompt = ChatPromptTemplate.from_messages([
-    (
-    'system',
-    '''
-    Answer the user's question using only the
-    provided webpage context.
-
-    If the answer is not present in the context,
-    say that the information was not found on
-    the webpage.
-    '''
-    ),
-    ('user', """
-        Webpage Content:
-        {context}
-
-        Question:
-        {question}
-        """)
-])
-
-parser = StrOutputParser()
-
-chain = prompt | llm | parser

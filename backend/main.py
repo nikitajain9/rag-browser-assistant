@@ -1,0 +1,42 @@
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from rag import rag_pipeline
+
+app = FastAPI()
+
+# Allow the Chrome extension (and browser pages) to call this API.
+# Chrome extensions send requests with an origin like
+# "chrome-extension://<extension-id>", so we allow all origins here.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+class Query(BaseModel):
+    question: str
+    context: str
+
+
+class Answer(BaseModel):
+    answer: str
+
+
+@app.get("/")
+def health_check():
+    return {"status": "ok", "message": "RAG Browser Assistant API is running"}
+
+
+@app.post("/ask", response_model=Answer)
+def ask(query: Query):
+    answer = rag_pipeline(
+        query.context,
+        query.question
+    )
+    return {
+        "answer": answer
+    }
