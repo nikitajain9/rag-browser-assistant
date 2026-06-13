@@ -5,9 +5,7 @@ from rag import rag_pipeline
 
 app = FastAPI()
 
-# Allow the Chrome extension (and browser pages) to call this API.
-# Chrome extensions send requests with an origin like
-# "chrome-extension://<extension-id>", so we allow all origins here.
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
